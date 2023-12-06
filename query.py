@@ -140,8 +140,9 @@ def matchVideo(recreateVideoData, noShowUI, queryVideo):
     # query the current video
     frame_stats = getFrameStats(queryVideo)
     start_frame, video_name = getMatchingVideoInfo(frame_stats)
-    print("{0} is taken from {1} starting at {2} frame".format(
-        queryVideo, video_name, start_frame-2))
+    print("Query video:", queryVideo)
+    print("Video Name:", video_name)
+    print("frame offset:", start_frame-2)
 
 
 if __name__ == "__main__":
