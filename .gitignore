@@ -5,3 +5,5 @@ queries/
 
 dataset.zip
 queries.zip
+
+__pycache__

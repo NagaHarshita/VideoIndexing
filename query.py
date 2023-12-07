@@ -5,6 +5,8 @@ import pickle
 import copy
 import time
 from scenedetect import SceneManager, StatsManager, ThresholdDetector, open_video
+from media_player import VideoPlayerApp
+import tkinter as tk
 
 DIR_NAME = "dataset/"
 META_DATA_FILE_PATH = "dataset/video_meta_data.pkl"
@@ -133,7 +135,7 @@ def getMatchingVideoInfo(frame_stats):
     return frame_number, video_name
 
 
-def matchVideo(recreateVideoData, noShowUI, queryVideo):
+def matchVideo(recreateVideoData, queryVideo):
     # create dataset meta data if not exists
     checkAndCreateVideoData(recreateVideoData)
 
@@ -143,6 +145,14 @@ def matchVideo(recreateVideoData, noShowUI, queryVideo):
     print("Query video:", queryVideo)
     print("Video Name:", video_name)
     print("frame offset:", start_frame-2)
+    return video_name, start_frame - 2
+
+
+def playVideo(video_name, start_frame):
+    video_path = DIR_NAME + video_name
+    root = tk.Tk()
+    app = VideoPlayerApp(root, video_path, start_frame)
+    root.mainloop()
 
 
 if __name__ == "__main__":
@@ -155,5 +165,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     start_time = time.time()
-    matchVideo(args.recreateVideoData, args.noShowUI, args.queryVideo)
+    video_name, start_frame = matchVideo(
+        args.recreateVideoData, args.queryVideo)
     print("Query completed in %.4f seconds" % (time.time() - start_time))
+
+    if (args.noShowUI == False):
+        playVideo(video_name, start_frame)

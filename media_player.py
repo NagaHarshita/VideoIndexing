@@ -8,24 +8,41 @@ import time
 
 
 class VideoPlayerApp:
-    def __init__(self, root):
+    def __init__(self, root, video_path, frame_number=0):
         self.root = root
         self.root.title("Video Player")
 
         # Video player variables
-        self.video_path = None
-        self.cap = None
+        self.video_path = video_path
+        self.cap = cv2.VideoCapture(self.video_path)
         self.playing = False
 
         # Audio player variables
-        self.audio_path = None
-        self.audio = None
+        self.audio_path = self.video_path.replace(".mp4", ".wav")
+        self.audio = AudioSegment.from_file(self.audio_path, format="wav")
 
         self.frames_count = 0
         self.frame_rate = 30
 
         # Create UI
         self.create_widgets()
+
+        if (frame_number != 0):
+            self.seekToFrame(frame_number)
+
+    def seekToFrame(self, frame_number):
+        frame = None
+        while (self.frames_count < frame_number):
+            ret, frame = self.cap.read()
+            self.frames_count = self.frames_count + 1
+
+        seconds_elapsed = float(self.frames_count)/float(30)
+        self.audio = AudioSegment.from_file(
+            self.audio_path, format="wav", start_second=seconds_elapsed)
+
+        img = self.convert_image(frame)
+        self.label.configure(image=img)
+        self.label.image = img
 
     def create_widgets(self):
         # Create buttons
@@ -44,28 +61,6 @@ class VideoPlayerApp:
         # Create label for video display
         self.label = ttk.Label(self.root)
         self.label.grid(row=1, column=0, columnspan=3, padx=5, pady=5)
-
-        # Create menu
-        menu_bar = tk.Menu(self.root)
-        self.root.config(menu=menu_bar)
-        file_menu = tk.Menu(menu_bar, tearoff=0)
-        file_menu.add_command(label="Open Video", command=self.open_video)
-        menu_bar.add_cascade(label="File", menu=file_menu)
-
-    def open_video(self):
-        # Open a file dialog to select a video file
-        file_path = filedialog.askopenfilename()
-
-        if file_path:
-            self.video_path = file_path
-            self.cap = cv2.VideoCapture(self.video_path)
-
-            # Open the corresponding audio file
-            audio_path = self.video_path.replace(".mp4", ".wav")
-            self.audio_path = audio_path
-            self.audio = AudioSegment.from_file(audio_path, format="wav")
-
-            self.play_video()
 
     def play_video(self):
         if self.cap and not self.playing:
@@ -134,6 +129,11 @@ class VideoPlayerApp:
             self.stop_audio()
             self.audio = AudioSegment.from_file(self.audio_path, format="wav")
 
+            ret, frame = self.cap.read()
+            img = self.convert_image(frame)
+            self.label.configure(image=img)
+            self.label.image = img
+
     def stop_audio(self):
         if hasattr(self, 'audio_play_obj') and self.audio_play_obj:
             self.audio_play_obj.stop()
@@ -143,9 +143,3 @@ class VideoPlayerApp:
         img = Image.fromarray(rgb_frame)
         img = ImageTk.PhotoImage(img)
         return img
-
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = VideoPlayerApp(root)
-    root.mainloop()
