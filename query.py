@@ -7,21 +7,52 @@ import time
 from scenedetect import SceneManager, StatsManager, ThresholdDetector, open_video
 from media_player import VideoPlayerApp
 import tkinter as tk
+import numpy as np
+import cv2
 
 DIR_NAME = "dataset/"
 META_DATA_FILE_PATH = "dataset/video_meta_data.pkl"
 dataset_info = {}
 
 
+def computeFrameAverage(frame: np.ndarray) -> float:
+    num_pixel_values = float(frame.shape[0] * frame.shape[1] * frame.shape[2])
+    avg_pixel_value = np.sum(frame[:, :, :]) / num_pixel_values
+    return avg_pixel_value
+
+
+def processRGB(file_name):
+
+    width = 352
+    height = 288
+    fps = 30
+
+    frame_size = width * height * 3
+    total_frames = int(np.fromfile(
+        file_name, dtype=np.uint8).shape[0] / frame_size)
+
+    averages = []
+    with open(file_name, 'rb') as file:
+        for _ in range(total_frames):
+            frame_data = np.fromfile(file, dtype=np.uint8, count=frame_size)
+
+            frame = frame_data.reshape((height, width, 3))
+
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            avg = computeFrameAverage(frame)
+            averages.append(avg)
+    return averages
+
+
 def createVideoInfo(video_data, video_name):
     i = 0
     while i < len(video_data):
 
-        avg_rgb = math.floor(video_data[i]["average_rgb"])
+        avg_rgb = math.floor(video_data[i])
         cnt = 1
         j = i
 
-        while (j < len(video_data)-1 and avg_rgb == math.floor(video_data[j+1]["average_rgb"])):
+        while (j < len(video_data)-1 and avg_rgb == math.floor(video_data[j+1])):
             cnt = cnt + 1
             j = j + 1
 
@@ -32,6 +63,17 @@ def createVideoInfo(video_data, video_name):
         i = j + 1
 
 
+def getDataFromPickleDump(video_path):
+    pickle_path = video_path.replace(".mp4", ".pkl")
+    with open(pickle_path, 'rb') as handle:
+        data = pickle.load(handle)
+
+    data_dict = dict()
+    for i in range(len(data)):
+        data_dict[i] = data[i]
+    return data_dict
+
+
 def computeVideoMetaData(file_name):
     # generate CSV files for all dataset videos
     video_list = [file for file in os.listdir(
@@ -39,7 +81,8 @@ def computeVideoMetaData(file_name):
     video_data = []
     for video in video_list:
         video_path = DIR_NAME + video
-        video_data = getFrameStats(video_path)
+        video_data = getDataFromPickleDump(video_path)
+        # video_data = getFrameStats(video_path)
         createVideoInfo(video_data, video)
 
     with open(file_name, 'wb') as handle:
@@ -73,11 +116,11 @@ def generateRLE(frame_stats):
     i = 0
     rle = []
     while i < len(frame_stats):
-        avg_rgb = math.floor(frame_stats[i]["average_rgb"])
+        avg_rgb = math.floor(frame_stats[i])
         cnt = 1
         j = i
 
-        while (j < len(frame_stats)-1 and avg_rgb == math.floor(frame_stats[j+1]["average_rgb"])):
+        while (j < len(frame_stats)-1 and avg_rgb == math.floor(frame_stats[j+1])):
             cnt = cnt + 1
             j = j + 1
         rle.append((avg_rgb, j-i+1))
@@ -118,7 +161,7 @@ def matchSignature(rle, video_data):
         bin_number = bin_number + 1
         candidates = copy.deepcopy(candidates_temp)
 
-        if (len(candidate_set) == 1):
+        if (len(candidate_set) == 1 and len(frame_set) == 1):
             break
 
     number_of_matching_frames = getMatchingFramesCount(bin_number - 1, rle)
@@ -140,11 +183,11 @@ def matchVideo(recreateVideoData, queryVideo):
     checkAndCreateVideoData(recreateVideoData)
 
     # query the current video
-    frame_stats = getFrameStats(queryVideo)
+    frame_stats = processRGB(queryVideo)
     start_frame, video_name = getMatchingVideoInfo(frame_stats)
     print("Query video:", queryVideo)
     print("Video Name:", video_name)
-    print("frame offset:", start_frame-2)
+    print("frame offset:", start_frame-1)
     return video_name, start_frame - 2
 
 

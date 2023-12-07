@@ -2,8 +2,12 @@
 
 dataset/
 queries/
+__pycache__/
+rgbs/
+.vscode/
 
 dataset.zip
 queries.zip
 
-__pycache__
+token.json
+credentials.json
