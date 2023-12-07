@@ -4,6 +4,7 @@ import cv2
 from PIL import Image, ImageTk
 from pydub import AudioSegment
 import simpleaudio as sa
+import time
 
 
 class VideoPlayerApp:
@@ -21,6 +22,7 @@ class VideoPlayerApp:
         self.audio = None
 
         self.frames_count = 0
+        self.frame_rate = 30
 
         # Create UI
         self.create_widgets()
@@ -87,10 +89,10 @@ class VideoPlayerApp:
 
                 self.frames_count = self.frames_count + 1
                 # Adjust delay for video speed
-                if (self.frames_count % 30 == 0):
-                    self.root.after(29, self.play_frame)
+                if (self.frames_count % 3 == 1):
+                    self.root.after(33, self.play_frame)
                 else:
-                    self.root.after(29, self.play_frame)
+                    self.root.after(30, self.play_frame)
             else:
                 self.reset_video()
 
@@ -113,22 +115,24 @@ class VideoPlayerApp:
     def pause_audio(self):
         if hasattr(self, 'audio_play_obj') and self.audio_play_obj:
             self.audio_play_obj.stop()
-            seconds_elapsed = float(self.frames_count)/float(30.303030303)
+            seconds_elapsed = float(self.frames_count)/float(30)
             self.audio = AudioSegment.from_file(
                 self.audio_path, format="wav", start_second=seconds_elapsed)
 
     def reset_video(self):
         if self.cap:
             self.cap.release()
-            self.cap = None
+            self.cap = cv2.VideoCapture(self.video_path)
             self.playing = False
             self.play_button["state"] = "enabled"
             self.pause_button["state"] = "disabled"
             self.reset_button["state"] = "disabled"
             self.label.configure(image=None)
+            self.frames_count = 0
 
             # Stop audio
             self.stop_audio()
+            self.audio = AudioSegment.from_file(self.audio_path, format="wav")
 
     def stop_audio(self):
         if hasattr(self, 'audio_play_obj') and self.audio_play_obj:
