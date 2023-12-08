@@ -1,4 +1,3 @@
-import pickle
 import numpy as np
 from scipy.signal import spectrogram
 from pydub import AudioSegment
@@ -227,5 +226,6 @@ def recognise_song(filename):
 pkl_file = 'hash.pkl'
 start = time.time()
 hash_dict = pd.read_pickle(pkl_file)
-print(recognise_song("../../../queries/video" + "5" + "_1.wav"))
+# print(recognise_song("../../../queries/video" + "11" + "_1.wav"))
+print(recognise_song("../../video4_5.mp4"))
 print(time.time()-start)
