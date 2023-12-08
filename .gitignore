@@ -1,8 +1,11 @@
 *.pyc
 *.swp
+*.pkl
+*.txt
 venv/
 .ipynb_checkpoints/
 *.db*
 _build/
+data/
 tags
 abracadabra.egg-info/
