@@ -5,14 +5,16 @@ import pickle
 import copy
 import time
 from scenedetect import SceneManager, StatsManager, ThresholdDetector, open_video
+import cv2
+import numpy as np
+from pydub import AudioSegment
 from media_player import VideoPlayerApp
 import tkinter as tk
-import numpy as np
-import cv2
 
 DIR_NAME = "dataset/"
 META_DATA_FILE_PATH = "dataset/video_meta_data.pkl"
 dataset_info = {}
+QUERY_VIDEO = ""
 
 
 def computeFrameAverage(frame: np.ndarray) -> float:
@@ -135,12 +137,28 @@ def getMatchingFramesCount(bin_number, rle):
     return sum
 
 
+def sanityCheck(selected_frame_number, selected_video):
+
+    selected_video_start_time = (selected_frame_number-2)/30
+    query_video_start_time = 0
+
+    selected_video_audio_path = DIR_NAME + selected_video[:-4] + ".wav"
+    query_video_audio_path = QUERY_VIDEO[:-4] + ".wav"
+
+    selected_video_audio = AudioSegment.from_file(
+        selected_video_audio_path, format="wav", start_second=selected_video_start_time, duration=5)
+    query_video_audio = AudioSegment.from_file(
+        query_video_audio_path, format="wav", start_second=query_video_start_time, duration=5)
+
+    return (selected_video_audio.raw_data == query_video_audio.raw_data)
+
+
 def matchSignature(rle, video_data):
     bin_number = 1
-
+    check_len_of_sets = 0
     curr_bin = rle[bin_number]
     candidates = video_data[curr_bin]
-    while (bin_number < len(rle)):
+    while (bin_number < len(rle)-1):
         candidate_set = set()
         frame_set = set()
         candidates_temp = []
@@ -159,13 +177,27 @@ def matchSignature(rle, video_data):
                     frame_set.add(candidate_start_frame_number)
 
         bin_number = bin_number + 1
-        candidates = copy.deepcopy(candidates_temp)
+        if (len(candidates_temp)):
+            candidates = copy.deepcopy(candidates_temp)
 
         if (len(candidate_set) == 1 and len(frame_set) == 1):
+            check_len_of_sets = 1
             break
 
     number_of_matching_frames = getMatchingFramesCount(bin_number - 1, rle)
-    return list(frame_set)[0] - number_of_matching_frames, list(candidate_set)[0]
+
+    if (check_len_of_sets):
+        # start_frame = int( list(frame_set)[0]) - number_of_matching_frames
+        # matched = sanityCheck(start_frame,  list(candidate_set)[0])
+        # print(matched)
+        return list(frame_set)[0] - number_of_matching_frames, list(candidate_set)[0]
+
+    else:  # multiple videos or frames selected doing a sanity check
+        for cadidate in candidates:
+            start_frame = cadidate[1] - number_of_matching_frames
+            matched = sanityCheck(start_frame, cadidate[0])
+            if matched:
+                return cadidate[1] - number_of_matching_frames, cadidate[0]
 
 
 def getMatchingVideoInfo(frame_stats):
@@ -187,8 +219,13 @@ def matchVideo(recreateVideoData, queryVideo):
     start_frame, video_name = getMatchingVideoInfo(frame_stats)
     print("Query video:", queryVideo)
     print("Video Name:", video_name)
-    print("frame offset:", start_frame-1)
-    return video_name, start_frame - 2
+
+    if (start_frame - 1 < 0):
+        print("frame offset:", 0)
+    else:
+        print("frame offset:", start_frame - 1)
+
+    return video_name, start_frame
 
 
 def playVideo(video_name, start_frame):
@@ -208,6 +245,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     start_time = time.time()
+    QUERY_VIDEO = args.queryVideo
     video_name, start_frame = matchVideo(
         args.recreateVideoData, args.queryVideo)
     print("Query completed in %.4f seconds" % (time.time() - start_time))
