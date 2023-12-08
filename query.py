@@ -4,7 +4,6 @@ import math
 import pickle
 import copy
 import time
-from scenedetect import SceneManager, StatsManager, ThresholdDetector, open_video
 import cv2
 import numpy as np
 from pydub import AudioSegment
@@ -84,7 +83,6 @@ def computeVideoMetaData(file_name):
     for video in video_list:
         video_path = DIR_NAME + video
         video_data = getDataFromPickleDump(video_path)
-        # video_data = getFrameStats(video_path)
         createVideoInfo(video_data, video)
 
     with open(file_name, 'wb') as handle:
@@ -101,17 +99,6 @@ def checkAndCreateVideoData(force):
     else:
         # there is no file -> create a new file
         computeVideoMetaData(META_DATA_FILE_PATH)
-
-
-def getFrameStats(query_video):
-    video = open_video(query_video)
-    scene_manager = SceneManager(StatsManager())
-    scene_manager.add_detector(ThresholdDetector())
-    scene_manager.detect_scenes(
-        video=video,
-        show_progress=False
-    )
-    return scene_manager.stats_manager._frame_metrics
 
 
 def generateRLE(frame_stats):
